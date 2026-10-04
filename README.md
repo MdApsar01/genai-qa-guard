@@ -1,4 +1,6 @@
-﻿# GenAI QA Guard
+![CI](https://github.com/MdApsar01/genai-qa-guard/actions/workflows/eval_pipeline.yml/badge.svg)
+
+# GenAI QA Guard
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
 ![Pytest](https://img.shields.io/badge/Testing-Pytest-green?logo=pytest)
@@ -56,6 +58,7 @@ GenAI QA Guard addresses that by combining:
                                                   | (Grounded Synthesis)|
                                                   +---------------------+
 ```
+
 ---
 
 ## Testing Strategy
@@ -119,12 +122,14 @@ Add this configuration to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "qa-test-automation": {
-      "command": "C:\\Projects\\genai-qa-guard\\venv\\Scripts\\python.exe",
-      "args": ["C:\\Projects\\genai-qa-guard\\mcp_server\\server.py"]
+      "command": "<path-to-repo>/venv/Scripts/python.exe",
+      "args": ["<path-to-repo>/mcp_server/server.py"]
     }
   }
 }
 ```
+
+On macOS / Linux, use `<path-to-repo>/venv/bin/python` as the command.
 
 This allows external MCP-compatible clients to call the QA automation server directly and inspect the project’s evaluation tools without writing custom glue code.
 
@@ -140,15 +145,15 @@ During the development and integration of this framework, several system-level e
 
 ### 1. Windows AppContainer Loopback Isolation
 
-- **The Challenge:** When Claude Desktop is installed via the Microsoft Store, it runs inside an isolated Windows AppContainer. The Windows kernel firewall enforces Loopback Isolation, blocking child processes from making network calls to `127.0.0.1:8000` or external internet endpoints, causing standard HTTP test clients (`requests`) to hang.
-- **The Solution:** Rather than relying on external HTTP network calls, the MCP evaluation tools were architected to execute pure in-memory evaluations directly against the RAG engine and embedding models. This dropped evaluation latency from 60s timeouts down to 0.05 seconds.
+- **The Challenge:** In my setup, Claude Desktop was installed from the Microsoft Store. MCP tool calls that used a standard HTTP client (`requests`) against `127.0.0.1:8000` hung until timeout, which points to Windows AppContainer loopback restrictions on the packaged app's child processes.
+- **The Solution:** Rather than relying on network calls, the MCP evaluation tools run in-memory evaluations directly against the RAG engine and embedding models. This reduced evaluation time from 60-second timeouts to about 0.05 seconds.
 
 ### 2. OS Pipe Buffer Deadlocks in Background Subprocesses
 
 - **The Challenge:** Spawning Uvicorn servers via `subprocess.Popen` with standard pipes on Windows resulted in pipe deadlocks when log buffers (4KB) filled up without an active drain thread.
 - **The Solution:** Optimized background server lifecycles to use `subprocess.DEVNULL` and attached `CREATE_NO_WINDOW` flags to ensure headless background execution without hanging Windows GUI thread loops.
 
-### 3. Non-Deterministic Hallucination & Exception Handling
+### 3. Intent-ordering defect caught by the faithfulness eval
 
 - **The Challenge:** General intent matching in the RAG generation layer prematurely categorized restricted items (for example, opened software) under generic 30-day return policies, dropping the semantic similarity score to `0.4928`.
 - **The Solution:** Restructured the intent hierarchy to evaluate restrictive policy exceptions before generic returns, raising the benchmark similarity score to `1.0000`.
@@ -159,29 +164,16 @@ During the development and integration of this framework, several system-level e
 
 ```text
 genai-qa-guard/
-├── .github/workflows/
-│   └── eval_pipeline.yml       # Automated CI/CD pipeline
-├── app/
-│   ├── __init__.py
-│   ├── main.py                 # FastAPI backend, Chat UI & Guardrails
-│   ├── rag_engine.py           # ChromaDB vector store & retrieval logic
-│   └── documents/
-│       └── policy.txt          # Domain knowledge base
-├── tests/
-│   ├── conftest.py             # Auto-starting server lifecycle fixtures
-│   ├── api/                    # Layer 1: API contract & SLA tests
-│   │   ├── test_sample_api.py
-│   │   └── test_rag_api.py
-│   ├── e2e/                    # Layer 2: Playwright UI & network mock tests
-│   │   └── test_chat_interface.py
-│   ├── evals/                  # Layer 3: RAG Triad & semantic evaluation
-│   │   ├── golden_dataset.json
-│   │   └── test_faithfulness.py
-│   └── security/               # Layer 4: Red teaming & prompt injection tests
-│       └── test_prompt_injection.py
+├── .github/workflows/eval_pipeline.yml
+├── app/            (main.py, rag_engine.py, documents/policy.txt)
+├── mcp_server/     (server.py, test client)
+├── tests/          (api/, e2e/, evals/, security/, conftest.py)
+├── docs/           (claude_mcp_demo.png)
+├── LICENSE
 ├── requirements.txt
 └── pytest.ini
 ```
+
 ---
 
 ## Getting Started
@@ -266,7 +258,7 @@ This ensures regressions are caught before merging code.
 
 ## Project Goals
 
-This project is intended to demonstrate how to build a reliable AI QA strategy for enterprise-grade GenAI products by validating:
+This project is intended to demonstrate how to build a reliable AI QA strategy for GenAI applications by validating:
 
 - factual accuracy
 - retrieval quality
@@ -276,9 +268,14 @@ This project is intended to demonstrate how to build a reliable AI QA strategy f
 
 ---
 
+## Limitations
+
+- The answer generator is **rule-based**, so results reflect that component rather than a production LLM.
+- Semantic similarity is measured with **all-MiniLM-L6-v2** (`sentence-transformers`) and a pass threshold of **0.65 – 0.70** (configured per test case in `golden_dataset.json`).
+- The prompt-injection guardrail is **pattern-based** (`SUSPICIOUS_PROMPT_PATTERNS`) and is a demonstration, not a complete defence against all attacks.
+- The golden dataset contains **4** examples and is intended as a starting point to extend.
+---
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
----
-
