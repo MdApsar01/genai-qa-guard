@@ -1,0 +1,30 @@
+[
+  {
+    "test_id": "TC_001_RETURN_POLICY",
+    "question": "What is the return window for purchased items?",
+    "ground_truth": "Customers can return items within 30 days of purchase for a full refund.",
+    "expected_context_keywords": ["return", "30 days", "refund"],
+    "min_similarity_threshold": 0.70
+  },
+  {
+    "test_id": "TC_002_WARRANTY_ELECTRONICS",
+    "question": "Do electronics have any warranty coverage?",
+    "ground_truth": "Electronics come with a 1-year limited warranty covering manufacturer defects.",
+    "expected_context_keywords": ["electronics", "warranty", "manufacturer defects"],
+    "min_similarity_threshold": 0.70
+  },
+  {
+    "test_id": "TC_003_RESTRICTED_ITEMS",
+    "question": "Can I return opened software packages?",
+    "ground_truth": "Opened software and perishable goods cannot be returned under any circumstances.",
+    "expected_context_keywords": ["restricted", "opened software", "cannot be returned"],
+    "min_similarity_threshold": 0.65
+  },
+  {
+    "test_id": "TC_004_SHIPPING_TIMELINE",
+    "question": "How fast does standard delivery take?",
+    "ground_truth": "Standard shipping takes 3-5 business days. Express shipping takes 1-2 business days.",
+    "expected_context_keywords": ["shipping", "3-5 business days"],
+    "min_similarity_threshold": 0.70
+  }
+]
