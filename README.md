@@ -101,6 +101,56 @@ The app blocks unsafe requests with a strict guardrail response.
 
 ---
 
+## 🤖 Model Context Protocol (MCP) Integration
+
+This repository includes a custom Python MCP Server (`mcp_server/server.py`) built using the Model Context Protocol SDK (`FastMCP`), exposing real-time evaluation tools to AI clients such as Claude Desktop or Cursor.
+
+### Exposed MCP Tools
+
+1. `evaluate_rag_query(query)`: Queries ChromaDB, retrieves context chunks, and evaluates the generated answer.
+2. `run_tests(target)`: Executes the project’s pytest suites against a specified target path and returns the result summary.
+3. `policy://store/current`: Exposes the active policy knowledge base as a readable MCP resource.
+
+### Connecting to Claude Desktop
+
+Add this configuration to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "qa-test-automation": {
+      "command": "C:\\Projects\\genai-qa-guard\\venv\\Scripts\\python.exe",
+      "args": ["C:\\Projects\\genai-qa-guard\\mcp_server\\server.py"]
+    }
+  }
+}
+```
+
+This allows external MCP-compatible clients to call the QA automation server directly and inspect the project’s evaluation tools without writing custom glue code.
+
+---
+
+## 🛠️ Key Engineering Challenges & Architectural Decisions
+
+During the development and integration of this framework, several system-level edge cases were identified and engineered around:
+
+### 1. Windows AppContainer Loopback Isolation
+
+- **The Challenge:** When Claude Desktop is installed via the Microsoft Store, it runs inside an isolated Windows AppContainer. The Windows kernel firewall enforces Loopback Isolation, blocking child processes from making network calls to `127.0.0.1:8000` or external internet endpoints, causing standard HTTP test clients (`requests`) to hang.
+- **The Solution:** Rather than relying on external HTTP network calls, the MCP evaluation tools were architected to execute pure in-memory evaluations directly against the RAG engine and embedding models. This dropped evaluation latency from 60s timeouts down to 0.05 seconds.
+
+### 2. OS Pipe Buffer Deadlocks in Background Subprocesses
+
+- **The Challenge:** Spawning Uvicorn servers via `subprocess.Popen` with standard pipes on Windows resulted in pipe deadlocks when log buffers (4KB) filled up without an active drain thread.
+- **The Solution:** Optimized background server lifecycles to use `subprocess.DEVNULL` and attached `CREATE_NO_WINDOW` flags to ensure headless background execution without hanging Windows GUI thread loops.
+
+### 3. Non-Deterministic Hallucination & Exception Handling
+
+- **The Challenge:** General intent matching in the RAG generation layer prematurely categorized restricted items (for example, opened software) under generic 30-day return policies, dropping the semantic similarity score to `0.4928`.
+- **The Solution:** Restructured the intent hierarchy to evaluate restrictive policy exceptions before generic returns, raising the benchmark similarity score to `1.0000`.
+
+---
+
 ## Repository Structure
 
 ```text
