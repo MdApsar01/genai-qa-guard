@@ -25,7 +25,7 @@ def test_get_post_success_and_latency():
     start_time = time.time()
     
     # 2. Make the HTTP GET request
-    response = requests.get(f"{BASE_URL}/posts/1")
+    response = requests.get(f"{BASE_URL}/posts/1", timeout=5)
     
     # 3. Calculate latency (how long the API took in seconds)
     latency = time.time() - start_time
@@ -59,7 +59,7 @@ def test_create_post_payload():
     headers = {"Content-Type": "application/json; charset=UTF-8"}
 
     # 2. Send POST request with JSON
-    response = requests.post(f"{BASE_URL}/posts", json=new_post, headers=headers)
+    response = requests.post(f"{BASE_URL}/posts", json=new_post, headers=headers, timeout=5)
 
     # 3. Assert status is 201 Created
     assert response.status_code == 201
@@ -76,7 +76,7 @@ def test_create_post_payload():
 # ---------------------------------------------------------------------------
 def test_get_non_existent_post():
     # Request an ID that does not exist
-    response = requests.get(f"{BASE_URL}/posts/999999")
+    response = requests.get(f"{BASE_URL}/posts/999999", timeout=5)
 
     # Assert the server gracefully returns 404 Not Found instead of crashing with 500
     assert response.status_code == 404

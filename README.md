@@ -128,6 +128,10 @@ Add this configuration to your `claude_desktop_config.json`:
 
 This allows external MCP-compatible clients to call the QA automation server directly and inspect the project’s evaluation tools without writing custom glue code.
 
+### Claude Desktop MCP Demo
+
+![Claude Desktop MCP Demo](docs/claude_mcp_demo.png)
+
 ---
 
 ## 🛠️ Key Engineering Challenges & Architectural Decisions
